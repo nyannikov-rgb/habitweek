@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HabitWeek Web</title>
+    <!-- Подключаем скрипт Telegram для работы WebApp -->
+    <script src="https://telegram.org"></script>
+    <style>
+        :root {
+            --bg-color: #000000;
+            --card-bg: #111111;
+            --text-color: #ffffff;
+            --accent-color: #f2f2f2;
+            --dim-text: #888888;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            -webkit-user-select: none;
+            overflow-x: hidden;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-top: 10px;
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text-color);
+        }
+
+        .habit-card {
+            background: var(--card-bg);
+            border: 1px solid #222;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        /* Эффект линии как в логотипе */
+        .habit-card::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+        }
+
+        .habit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+
+        .habit-name {
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        .week-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+        }
+
+        .day-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dot {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 6px;
+            background: #222;
+            transition: transform 0.2s;
+        }
+
+        /* Цвета по твоей логике */
+        .done { background: #ffffff !important; box-shadow: 0 0 12px rgba(255,255,255,0.2); }
+        .missed { background: #ff453a !important; }
+        .future { background: #0a84ff !important; opacity: 0.7; }
+        .off { background: #222; border: 1px solid #333; }
+
+        .day-label {
+            font-size: 11px;
+            color: var(--dim-text);
+            font-weight: 500;
+        }
+
+        .loader {
+            text-align: center;
+            margin-top: 60px;
+            color: var(--dim-text);
+            font-size: 15px;
+            letter-spacing: 1px;
+        }
+
+        .error-msg {
+            color: #ff453a;
+            font-size: 14px;
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="logo-text">HabitWeek</div>
+    </div>
+
+    <div id="app">
+        <div class="loader">ПОДКЛЮЧЕНИЕ К СЕРВЕРУ...</div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        
+        // Настройка визуальной части WebApp в Telegram
+        tg.expand();
+        tg.setHeaderColor('#000000');
+        tg.setBackgroundColor('#000000');
+
+        const list = document.getElementById('app');
+        
+        // Пытаемся получить ID пользователя из данных Telegram
+        const userId = tg.initDataUnsafe.user?.id || 12345; 
+
+        async function loadHabits() {
+            try {
+                // ТВОЙ АКТУАЛЬНЫЙ АДРЕС СЕРВЕРА
+                const serverUrl = "https://9f755dcb009a1e17-72-56-99-52.serveousercontent.com";
+                
+                const response = await fetch(`${serverUrl}/get_habits/${userId}`);
+                
+                if (!response.ok) throw new Error("Server error");
+                
+                const habits = await response.json();
+                
+                if (habits.length === 0) {
+                    list.innerHTML = '<div class="loader">ПРИВЫЧЕК ПОКА НЕТ</div>';
+                    return;
+                }
+
+                list.innerHTML = ''; // Очищаем загрузчик
+                
+                habits.forEach(h => {
+                    const card = document.createElement('div');
+                    card.className = 'habit-card';
+                    
+                    const daysLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+                    const dotsHtml = h.dots.map((status, i) => `
+                        <div class="day-box">
+                            <div class="dot ${status}"></div>
+                            <span class="day-label">${daysLabels[i]}</span>
+                        </div>
+                    `).join('');
+
+                    card.innerHTML = `
+                        <div class="habit-header">
+                            <span class="habit-name">${h.name}</span>
+                        </div>
+                        <div class="week-grid">${dotsHtml}</div>
+                    `;
+                    list.appendChild(card);
+                });
+                
+            } catch (e) {
+                console.error(e);
+                list.innerHTML = `
+                    <div class="error-msg">
+                        ОШИБКА СВЯЗИ С HABITWEEK API<br><br>
+                        Убедись, что server.py запущен,<br>
+                        а ссылка в терминале активна.
+                    </div>`;
+            }
+        }
+
+        // Запуск загрузки
+        loadHabits();
+    </script>
+</body>
+</html>
