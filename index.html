@@ -48,7 +48,6 @@
             position: relative;
         }
 
-        /* Эффект линии как в логотипе */
         .habit-card::after {
             content: "";
             position: absolute;
@@ -87,10 +86,8 @@
             aspect-ratio: 1;
             border-radius: 6px;
             background: #222;
-            transition: transform 0.2s;
         }
 
-        /* Цвета по твоей логике */
         .done { background: #ffffff !important; box-shadow: 0 0 12px rgba(255,255,255,0.2); }
         .missed { background: #ff453a !important; }
         .future { background: #0a84ff !important; opacity: 0.7; }
@@ -130,35 +127,37 @@
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
+        // 1. Безопасно инициализируем Telegram SDK
+        const tg = window.Telegram?.WebApp;
         
-        // Настройка визуальной части WebApp в Telegram
-        tg.expand();
-        tg.setHeaderColor('#000000');
-        tg.setBackgroundColor('#000000');
+        if (tg) {
+            tg.expand();
+            tg.setHeaderColor('#000000');
+            tg.setBackgroundColor('#000000');
+        }
 
         const list = document.getElementById('app');
         
-        // Пытаемся получить ID пользователя из данных Telegram
-        const userId = tg.initDataUnsafe.user?.id || 12345; 
+        // 2. Определяем ID пользователя (если не в телеге - ставим тестовый 12345)
+        const userId = tg?.initDataUnsafe?.user?.id || 12345; 
 
         async function loadHabits() {
             try {
-                // ТВОЙ АКТУАЛЬНЫЙ АДРЕС СЕРВЕРА
-                const serverUrl = "https://08641851741fbb1e-72-56-99-52.serveousercontent.com";
+                // ВАЖНО: ЗАМЕНИ ЭТОТ АДРЕС НА АКТУАЛЬНЫЙ ИЗ ТЕРМИНАЛА SSH!
+                const serverUrl = "https://9f755dcb009a1e17-72-56-99-52.serveousercontent.com";
                 
                 const response = await fetch(`${serverUrl}/get_habits/${userId}`);
                 
-                if (!response.ok) throw new Error("Server error");
+                if (!response.ok) throw new Error("Сервер вернул ошибку " + response.status);
                 
                 const habits = await response.json();
                 
-                if (habits.length === 0) {
+                if (!habits || habits.length === 0) {
                     list.innerHTML = '<div class="loader">ПРИВЫЧЕК ПОКА НЕТ</div>';
                     return;
                 }
 
-                list.innerHTML = ''; // Очищаем загрузчик
+                list.innerHTML = ''; 
                 
                 habits.forEach(h => {
                     const card = document.createElement('div');
@@ -182,17 +181,17 @@
                 });
                 
             } catch (e) {
-                console.error(e);
+                console.error("Ошибка запроса:", e);
                 list.innerHTML = `
                     <div class="error-msg">
                         ОШИБКА СВЯЗИ С HABITWEEK API<br><br>
                         Убедись, что server.py запущен,<br>
-                        а ссылка в терминале активна.
+                        а ссылка в терминале SSH активна.<br>
+                        <small style="opacity:0.5">${e.message}</small>
                     </div>`;
             }
         }
 
-        // Запуск загрузки
         loadHabits();
     </script>
 </body>
